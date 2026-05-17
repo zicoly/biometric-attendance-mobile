@@ -21,7 +21,7 @@ export interface Session {
   startTime: string;
   endTime: string;
   qrEnabled: boolean;
-  status: "active" | "ended" | "scheduled";
+  status: "live" | "ended" | "upcoming";
   hasMarked: boolean;
 }
 
@@ -62,19 +62,27 @@ export const studentService = {
 
   async getActiveSessions(): Promise<Session[]> {
     const response = await api.get("/sessions/student/active");
-    return unwrap(response.data)?.sessions ?? [];
-  },
+    const sessions = unwrap(response.data)?.sessions ?? [];
 
+    // Log to see what the backend returns
+    console.log(
+      "📦 Active sessions with hasMarked:",
+      JSON.stringify(sessions, null, 2),
+    );
+
+    return sessions;
+  },
   async getUpcomingSessions(): Promise<Session[]> {
     const response = await api.get("/sessions/student/upcoming");
     return unwrap(response.data)?.sessions ?? [];
   },
 
-  async validateSession(
-    sessionId: string,
-  ): Promise<{ isValid: boolean; canMark: boolean; message: string }> {
+  async validateSession(sessionId: string): Promise<any> {
+    console.log("📡 [SERVICE] validateSession called with ID:", sessionId);
     const response = await api.get(`/sessions/student/${sessionId}/validate`);
-    return unwrap(response.data);
+    console.log("📦 [SERVICE] Raw response:", response.data);
+    // Return the full response data, not just unwrapped
+    return response.data;
   },
 
   async markBiometricAttendance(

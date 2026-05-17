@@ -27,10 +27,15 @@ export const LoginScreen = () => {
 
     try {
       await login(emailOrMatric, password);
-      // Navigation will automatically go to main screens via RootNavigator
+      // No navigation needed - RootNavigator will re-render based on auth state
     } catch (err: any) {
       Alert.alert("Login Failed", error || "Invalid credentials");
     }
+  };
+
+  const handleSignup = () => {
+    // Navigate to Signup screen
+    navigation.navigate("Signup" as never);
   };
 
   return (
@@ -73,10 +78,7 @@ export const LoginScreen = () => {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.signupLink}
-            onPress={() => navigation.navigate("Signup" as never)}
-          >
+          <TouchableOpacity style={styles.signupLink} onPress={handleSignup}>
             <Text style={styles.signupText}>
               Don't have an account?{" "}
               <Text style={styles.signupTextBold}>Sign Up</Text>
@@ -127,7 +129,16 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  signupLink: { marginTop: 20, alignItems: "center" },
-  signupText: { fontSize: 14, color: "#64748b" },
-  signupTextBold: { color: "#2563eb", fontWeight: "600" },
+  signupLink: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+  signupText: {
+    fontSize: 14,
+    color: "#64748b",
+  },
+  signupTextBold: {
+    color: "#2563eb",
+    fontWeight: "600",
+  },
 });

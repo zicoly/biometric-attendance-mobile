@@ -1,4 +1,14 @@
 import { api } from "./api";
+import { Platform } from "react-native";
+import * as SecureStore from "expo-secure-store";
+
+const isWeb = Platform.OS === "web";
+
+const webStorage = {
+  getItem: (key: string) => localStorage.getItem(key),
+  setItem: (key: string, value: string) => localStorage.setItem(key, value),
+  removeItem: (key: string) => localStorage.removeItem(key),
+};
 
 export interface User {
   _id: string;
@@ -9,9 +19,6 @@ export interface User {
   department: string;
   level: number;
 }
-
-// Simple in-memory storage for testing
-let memoryToken: string | null = null;
 
 export const authService = {
   async login(
@@ -26,17 +33,21 @@ export const authService = {
     const data = response.data?.data;
     const user = data.user;
     const accessToken = data.tokens?.accessToken;
+    const refreshToken = data.tokens?.refreshToken;
 
     if (accessToken) {
-      memoryToken = accessToken;
-      console.log("Token saved in memory");
+      if (isWeb) {
+        webStorage.setItem("accessToken", accessToken);
+        if (refreshToken) webStorage.setItem("refreshToken", refreshToken);
+      } else {
+        await SecureStore.setItemAsync("accessToken", accessToken);
+        if (refreshToken)
+          await SecureStore.setItemAsync("refreshToken", refreshToken);
+      }
+      console.log("✅ Tokens saved");
     }
 
     return { user, accessToken };
-  },
-
-  getToken(): string | null {
-    return memoryToken;
   },
 
   async getMe(): Promise<User> {
@@ -44,7 +55,20 @@ export const authService = {
     return response.data?.data;
   },
 
+  async getToken(): Promise<string | null> {
+    if (isWeb) {
+      return webStorage.getItem("accessToken");
+    }
+    return await SecureStore.getItemAsync("accessToken");
+  },
+
   async logout(): Promise<void> {
-    memoryToken = null;
+    if (isWeb) {
+      webStorage.removeItem("accessToken");
+      webStorage.removeItem("refreshToken");
+    } else {
+      await SecureStore.deleteItemAsync("accessToken");
+      await SecureStore.deleteItemAsync("refreshToken");
+    }
   },
 };

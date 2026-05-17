@@ -76,4 +76,27 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isLoading: false, isAuthenticated: false, user: null });
     }
   },
+
+  // In authStore.ts, add a method to check token validity
+  checkTokenValidity: async () => {
+    try {
+      const token = await authService.getToken();
+      if (!token) return false;
+
+      // Decode token to check expiration
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const isExpired = payload.exp * 1000 < Date.now();
+
+      if (isExpired) {
+        console.log("Token expired, logging out");
+        await authService.logout();
+        set({ user: null, isAuthenticated: false });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
 }));

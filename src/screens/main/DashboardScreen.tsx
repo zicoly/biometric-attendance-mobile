@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../store/authStore";
 import { studentService, EnrolledCourse } from "../../services/studentService";
 
@@ -93,14 +94,17 @@ export const DashboardScreen = () => {
       {/* Stats Cards */}
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
+          <Ionicons name="book-outline" size={24} color="#2563eb" />
           <Text style={styles.statValue}>{totalCourses}</Text>
           <Text style={styles.statLabel}>Enrolled Courses</Text>
         </View>
         <View style={styles.statCard}>
+          <Ionicons name="calendar-outline" size={24} color="#2563eb" />
           <Text style={styles.statValue}>{totalAttendance}</Text>
           <Text style={styles.statLabel}>Total Attendance</Text>
         </View>
         <View style={styles.statCard}>
+          <Ionicons name="trending-up-outline" size={24} color="#2563eb" />
           <Text style={styles.statValue}>{overallRate}%</Text>
           <Text style={styles.statLabel}>Overall Rate</Text>
         </View>
@@ -112,14 +116,18 @@ export const DashboardScreen = () => {
           style={styles.actionButton}
           onPress={() => navigation.navigate("Classes" as never)}
         >
-          <Text style={styles.actionIcon}>📚</Text>
+          <View style={styles.actionIconBg}>
+            <Ionicons name="finger-print-outline" size={24} color="#2563eb" />
+          </View>
           <Text style={styles.actionText}>Mark Attendance</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => navigation.navigate("History" as never)}
         >
-          <Text style={styles.actionIcon}>📋</Text>
+          <View style={styles.actionIconBg}>
+            <Ionicons name="time-outline" size={24} color="#2563eb" />
+          </View>
           <Text style={styles.actionText}>View History</Text>
         </TouchableOpacity>
       </View>
@@ -129,8 +137,12 @@ export const DashboardScreen = () => {
         <Text style={styles.sectionTitle}>My Courses</Text>
         {courses.length === 0 ? (
           <View style={styles.emptyCourses}>
-            <Text style={styles.emptyEmoji}>📚</Text>
-            <Text style={styles.emptyText}>No courses enrolled yet</Text>
+            <Ionicons name="book-outline" size={48} color="#cbd5e1" />
+            <Text style={styles.emptyTitle}>No courses enrolled yet</Text>
+            <Text style={styles.emptyText}>
+              You haven't enrolled in any courses. Please contact your
+              department.
+            </Text>
             <TouchableOpacity
               style={styles.enrollButton}
               onPress={() => navigation.navigate("Classes" as never)}
@@ -140,15 +152,23 @@ export const DashboardScreen = () => {
           </View>
         ) : (
           courses.map((course) => (
-            <View key={course._id} style={styles.courseCard}>
+            <TouchableOpacity
+              key={course._id}
+              style={styles.courseCard}
+              onPress={() => navigation.navigate("Classes" as never)}
+              activeOpacity={0.7}
+            >
               <View style={styles.courseHeader}>
                 <Text style={styles.courseCode}>{course.courseCode}</Text>
-                <Text style={styles.creditUnits}>
-                  {course.creditUnits} credits
-                </Text>
+                <View style={styles.creditBadge}>
+                  <Text style={styles.creditUnits}>
+                    {course.creditUnits} credits
+                  </Text>
+                </View>
               </View>
               <Text style={styles.courseTitle}>{course.courseTitle}</Text>
               <Text style={styles.lecturer}>
+                <Ionicons name="person-outline" size={12} color="#64748b" />{" "}
                 Lecturer: {course.lecturer || "TBA"}
               </Text>
 
@@ -172,10 +192,11 @@ export const DashboardScreen = () => {
                 </Text>
               </View>
               <Text style={styles.sessionCount}>
+                <Ionicons name="calendar-outline" size={10} color="#64748b" />{" "}
                 {course.attendedSessions || 0} / {course.totalSessions || 0}{" "}
                 sessions attended
               </Text>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </View>
@@ -214,6 +235,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     alignItems: "center",
+    gap: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -234,13 +256,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
+    gap: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
   },
-  actionIcon: { fontSize: 24, marginBottom: 8 },
+  actionIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#eff6ff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   actionText: { fontSize: 12, fontWeight: "600", color: "#2563eb" },
   section: { padding: 16 },
   sectionTitle: {
@@ -254,9 +284,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 32,
     alignItems: "center",
+    gap: 12,
   },
-  emptyEmoji: { fontSize: 48, marginBottom: 12 },
-  emptyText: { fontSize: 14, color: "#64748b", marginBottom: 16 },
+  emptyTitle: { fontSize: 16, fontWeight: "600", color: "#1e293b" },
+  emptyText: { fontSize: 14, color: "#64748b", textAlign: "center" },
   enrollButton: {
     backgroundColor: "#2563eb",
     paddingHorizontal: 20,
@@ -279,10 +310,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 8,
   },
   courseCode: { fontSize: 16, fontWeight: "bold", color: "#2563eb" },
-  creditUnits: { fontSize: 12, color: "#64748b" },
+  creditBadge: {
+    backgroundColor: "#f1f5f9",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  creditUnits: { fontSize: 10, color: "#64748b", fontWeight: "500" },
   courseTitle: {
     fontSize: 15,
     fontWeight: "500",
@@ -319,13 +356,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#64748b",
     marginLeft: 70,
-    marginBottom: 12,
   },
-  markButton: {
-    backgroundColor: "#2563eb",
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  markButtonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
 });

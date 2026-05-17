@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import {
   studentService,
   AttendanceRecord,
@@ -59,11 +60,11 @@ export const HistoryScreen = () => {
   const getMethodIcon = (method: string) => {
     switch (method) {
       case "biometric":
-        return "🔐";
+        return "finger-print";
       case "qr":
-        return "📱";
+        return "qr-code";
       default:
-        return "📴";
+        return "cloud-offline";
     }
   };
 
@@ -78,20 +79,46 @@ export const HistoryScreen = () => {
     }
   };
 
+  const getMethodColor = (method: string) => {
+    switch (method) {
+      case "biometric":
+        return "#3b82f6";
+      case "qr":
+        return "#8b5cf6";
+      default:
+        return "#f59e0b";
+    }
+  };
+
   const renderRecord = ({ item }: { item: AttendanceRecord }) => (
     <View style={styles.recordCard}>
       <View style={styles.recordHeader}>
         <Text style={styles.courseCode}>{item.sessionId.courseCode}</Text>
-        <View style={styles.methodBadge}>
-          <Text style={styles.methodIcon}>{getMethodIcon(item.method)}</Text>
-          <Text style={styles.methodText}>{getMethodName(item.method)}</Text>
+        <View
+          style={[
+            styles.methodBadge,
+            { backgroundColor: `${getMethodColor(item.method)}10` },
+          ]}
+        >
+          <Ionicons
+            name={getMethodIcon(item.method) as any}
+            size={12}
+            color={getMethodColor(item.method)}
+          />
+          <Text
+            style={[styles.methodText, { color: getMethodColor(item.method) }]}
+          >
+            {getMethodName(item.method)}
+          </Text>
         </View>
       </View>
       <Text style={styles.courseTitle}>{item.sessionId.courseTitle}</Text>
       <View style={styles.recordFooter}>
+        <Ionicons name="calendar-outline" size={14} color="#64748b" />
         <Text style={styles.date}>
           {new Date(item.timestamp).toLocaleDateString()}
         </Text>
+        <Ionicons name="time-outline" size={14} color="#64748b" />
         <Text style={styles.time}>
           {new Date(item.timestamp).toLocaleTimeString()}
         </Text>
@@ -124,7 +151,7 @@ export const HistoryScreen = () => {
       onEndReachedThreshold={0.3}
       ListEmptyComponent={
         <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>📋</Text>
+          <Ionicons name="calendar-outline" size={64} color="#cbd5e1" />
           <Text style={styles.emptyTitle}>No Attendance Records</Text>
           <Text style={styles.emptyText}>
             Your attendance history will appear here once you start marking
@@ -147,7 +174,7 @@ export const HistoryScreen = () => {
 
 const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-  listContent: { padding: 16 },
+  listContent: { padding: 16, flexGrow: 1 },
   recordCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -169,26 +196,24 @@ const styles = StyleSheet.create({
   methodBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f1f5f9",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
     gap: 4,
   },
-  methodIcon: { fontSize: 12 },
-  methodText: { fontSize: 11, color: "#64748b" },
+  methodText: { fontSize: 11, fontWeight: "500" },
   courseTitle: { fontSize: 14, color: "#1e293b", marginBottom: 12 },
   recordFooter: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 6,
     borderTopWidth: 1,
     borderTopColor: "#f1f5f9",
     paddingTop: 12,
   },
-  date: { fontSize: 12, color: "#64748b" },
+  date: { fontSize: 12, color: "#64748b", marginRight: 12 },
   time: { fontSize: 12, color: "#64748b" },
   emptyState: { alignItems: "center", padding: 48 },
-  emptyEmoji: { fontSize: 48, marginBottom: 16 },
   emptyTitle: {
     fontSize: 18,
     fontWeight: "600",
