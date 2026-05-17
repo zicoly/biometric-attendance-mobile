@@ -3,9 +3,6 @@ import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
 import { studentService } from "../services/studentService";
 
-// Set to true to skip actual API calls for testing biometrics
-const TEST_MODE = true;  // ← Change to false for production
-
 export const useBiometric = () => {
   const [isAvailable, setIsAvailable] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
@@ -20,10 +17,6 @@ export const useBiometric = () => {
   };
 
   const checkDeviceRegistration = async () => {
-    if (TEST_MODE) {
-      console.log("🧪 TEST MODE: Simulating device registration");
-      return true;
-    }
     const deviceId = await SecureStore.getItemAsync("deviceId");
     if (!deviceId) return false;
     setIsRegistered(true);
@@ -33,14 +26,6 @@ export const useBiometric = () => {
   const registerDevice = async () => {
     setIsLoading(true);
     try {
-      if (TEST_MODE) {
-        console.log("🧪 TEST MODE: Simulating device registration");
-        await SecureStore.setItemAsync("deviceId", `test_device_${Date.now()}`);
-        await SecureStore.setItemAsync("privateKey", `test_private_key_${Date.now()}`);
-        setIsRegistered(true);
-        return { success: true, deviceId: "test_device" };
-      }
-
       const deviceId = `device_${Date.now()}`;
       const deviceName = "Mobile Device";
       const publicKey = `public_key_${Date.now()}`;
@@ -63,16 +48,6 @@ export const useBiometric = () => {
     location?: { latitude: number; longitude: number },
   ) => {
     setIsLoading(true);
-    
-    // TEST MODE: Skip actual API calls
-    if (TEST_MODE) {
-      console.log("🧪 TEST MODE: Simulating biometric attendance marking");
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setIsLoading(false);
-      return { success: true };
-    }
-
     let retryCount = 0;
     const MAX_RETRIES = 2;
 
@@ -88,8 +63,12 @@ export const useBiometric = () => {
 
         // Get new challenge
         console.log("📡 Getting biometric challenge...");
-        const challengeData = await studentService.getBiometricChallenge(deviceId);
-        console.log("📦 Challenge received, expires at:", challengeData.expiresAt);
+        const challengeData =
+          await studentService.getBiometricChallenge(deviceId);
+        console.log(
+          "📦 Challenge received, expires at:",
+          challengeData.expiresAt,
+        );
 
         // Check if challenge is already expired
         const expiresAt = new Date(challengeData.expiresAt);
@@ -168,4 +147,4 @@ export const useBiometric = () => {
     registerDevice,
     markAttendanceWithBiometric,
   };
-};
+};;
