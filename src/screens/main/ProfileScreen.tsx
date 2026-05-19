@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../store/authStore";
 import { useBiometric } from "../../hooks/useBiometric";
@@ -11,6 +18,13 @@ export const ProfileScreen = () => {
   const [biometricStatus, setBiometricStatus] = useState<
     "registered" | "not_registered" | "checking"
   >("checking");
+
+  useEffect(() => {
+    console.log("ProfileScreen - User object:", user);
+    console.log("ProfileScreen - Department:", user?.department);
+    console.log("ProfileScreen - Level:", user?.level);
+    console.log("ProfileScreen - Email:", user?.email);
+  }, [user]);
 
   useEffect(() => {
     checkBiometricStatus();
@@ -60,19 +74,23 @@ export const ProfileScreen = () => {
         <View style={styles.infoCard}>
           <Ionicons name="mail-outline" size={20} color="#64748b" />
           <Text style={styles.label}>Email</Text>
-          <Text style={styles.value}>{user?.email || "-"}</Text>
+          <Text style={styles.value}>{user?.email || "Not available"}</Text>
         </View>
 
         <View style={styles.infoCard}>
           <Ionicons name="business-outline" size={20} color="#64748b" />
           <Text style={styles.label}>Department</Text>
-          <Text style={styles.value}>{user?.department || "-"}</Text>
+          <Text style={styles.value}>
+            {user?.department || "Not available"}
+          </Text>
         </View>
 
         <View style={styles.infoCard}>
           <Ionicons name="trending-up-outline" size={20} color="#64748b" />
           <Text style={styles.label}>Level</Text>
-          <Text style={styles.value}>{user?.level || "-"}</Text>
+          <Text style={styles.value}>
+            {user?.level ? user.level.toString() : "Not available"}
+          </Text>
         </View>
       </View>
 
@@ -145,7 +163,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 8,
   },
   avatarText: { fontSize: 32, fontWeight: "bold", color: "#2563eb" },
   userName: {
@@ -160,7 +178,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#1e293b",
-    marginBottom: 2,
+    marginBottom: 6,
   },
   infoCard: {
     flexDirection: "row",
@@ -171,7 +189,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     gap: 12,
   },
-  label: { fontSize: 14, fontWeight: "500", color: "#64748b", width: 90 },
+  label: { fontSize: 14, fontWeight: "500", color: "#64748b", width: 100 },
   value: { fontSize: 14, color: "#1e293b", flex: 1 },
   biometricCard: {
     flexDirection: "row",

@@ -20,6 +20,9 @@ export interface User {
   level: number;
 }
 
+// Helper to unwrap API response
+const unwrap = (raw: any) => raw?.data ?? raw;
+
 export const authService = {
   async login(
     emailOrMatric: string,
@@ -30,10 +33,16 @@ export const authService = {
     const response = await api.post("/auth/login", { emailOrMatric, password });
     console.log("Login response:", response.data);
 
-    const data = response.data?.data;
+    const data = unwrap(response.data);
     const user = data.user;
     const accessToken = data.tokens?.accessToken;
     const refreshToken = data.tokens?.refreshToken;
+
+    console.log("User data from login:", {
+      fullName: user?.fullName,
+      department: user?.department,
+      level: user?.level,
+    });
 
     if (accessToken) {
       if (isWeb) {
@@ -52,7 +61,14 @@ export const authService = {
 
   async getMe(): Promise<User> {
     const response = await api.get("/auth/me");
-    return response.data?.data;
+    const data = unwrap(response.data);
+    const user = data.user || data; // Handle both { user: {...} } and direct user object
+    console.log("getMe response - user:", {
+      fullName: user?.fullName,
+      department: user?.department,
+      level: user?.level,
+    });
+    return user;
   },
 
   async getToken(): Promise<string | null> {

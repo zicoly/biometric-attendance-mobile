@@ -17,13 +17,52 @@ export const DashboardScreen = () => {
   const [courses, setCourses] = useState<EnrolledCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [attendanceStats, setAttendanceStats] = useState({
+    totalAttendance: 0,
+    totalPossible: 0,
+    overallRate: 0,
+  });
   const { user } = useAuthStore();
   const navigation = useNavigation();
 
   const loadData = useCallback(async () => {
     try {
       const enrolledCourses = await studentService.getMyEnrolledCourses();
+
+      // Debug: Log the raw data from API
+      console.log(
+        "Dashboard - Enrolled courses:",
+        JSON.stringify(enrolledCourses, null, 2),
+      );
+
       setCourses(enrolledCourses);
+
+      // Calculate totals
+      const totalAttendance = enrolledCourses.reduce(
+        (sum, c) => sum + (c.attendedSessions || 0),
+        0,
+      );
+      const totalPossible = enrolledCourses.reduce(
+        (sum, c) => sum + (c.totalSessions || 0),
+        0,
+      );
+      const overallRate =
+        totalPossible > 0
+          ? ((totalAttendance / totalPossible) * 100).toFixed(1)
+          : "0";
+
+      console.log("Dashboard - Stats:", {
+        totalCourses: enrolledCourses.length,
+        totalAttendance,
+        totalPossible,
+        overallRate,
+      });
+
+      setAttendanceStats({
+        totalAttendance,
+        totalPossible,
+        overallRate: parseFloat(overallRate),
+      });
     } catch (error) {
       console.error("Failed to load dashboard:", error);
     } finally {
@@ -40,21 +79,6 @@ export const DashboardScreen = () => {
     setRefreshing(true);
     loadData();
   };
-
-  // Calculate totals safely
-  const totalCourses = courses.length;
-  const totalAttendance = courses.reduce(
-    (sum, c) => sum + (c.attendedSessions || 0),
-    0,
-  );
-  const totalPossible = courses.reduce(
-    (sum, c) => sum + (c.totalSessions || 0),
-    0,
-  );
-  const overallRate =
-    totalPossible > 0
-      ? ((totalAttendance / totalPossible) * 100).toFixed(1)
-      : "0";
 
   if (loading) {
     return (
@@ -95,17 +119,19 @@ export const DashboardScreen = () => {
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
           <Ionicons name="book-outline" size={24} color="#2563eb" />
-          <Text style={styles.statValue}>{totalCourses}</Text>
+          <Text style={styles.statValue}>{courses.length}</Text>
           <Text style={styles.statLabel}>Enrolled Courses</Text>
         </View>
         <View style={styles.statCard}>
           <Ionicons name="calendar-outline" size={24} color="#2563eb" />
-          <Text style={styles.statValue}>{totalAttendance}</Text>
+          <Text style={styles.statValue}>
+            {attendanceStats.totalAttendance}
+          </Text>
           <Text style={styles.statLabel}>Total Attendance</Text>
         </View>
         <View style={styles.statCard}>
           <Ionicons name="trending-up-outline" size={24} color="#2563eb" />
-          <Text style={styles.statValue}>{overallRate}%</Text>
+          <Text style={styles.statValue}>{attendanceStats.overallRate}%</Text>
           <Text style={styles.statLabel}>Overall Rate</Text>
         </View>
       </View>

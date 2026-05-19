@@ -18,6 +18,7 @@ export const RootNavigator = () => {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isBiometricSetup, setIsBiometricSetup] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [hasAttendance, setHasAttendance] = useState(false);
 
   useEffect(() => {
     console.log("RootNavigator: Checking auth...");
@@ -33,13 +34,44 @@ export const RootNavigator = () => {
 
       if (isAuthenticated && user) {
         try {
-          // Check if enrolled in courses
+          // First, check if user has any attendance records
+          // This indicates they have actually completed course registration
+          console.log("RootNavigator: Checking attendance records...");
+          let hasAttendanceRecords = false;
+          try {
+            const historyRes = await api.get("/attendance/history?limit=1");
+            const records = historyRes.data?.data?.records || [];
+            hasAttendanceRecords = records.length > 0;
+            setHasAttendance(hasAttendanceRecords);
+            console.log(
+              "RootNavigator: Has attendance records:",
+              hasAttendanceRecords,
+            );
+          } catch (error) {
+            console.log("RootNavigator: No attendance records found");
+            hasAttendanceRecords = false;
+          }
+
+          // Check if enrolled in courses (student submitted course registration)
           console.log("RootNavigator: Fetching enrolled courses...");
           const enrollmentRes = await api.get("/enrollment/my-courses");
           const courses = enrollmentRes.data?.data?.courses || [];
-          const hasEnrolled = courses.length > 0;
-          setIsEnrolled(hasEnrolled);
-          console.log("RootNavigator: Has enrolled:", hasEnrolled);
+          const hasEnrolledCourses = courses.length > 0;
+
+          // A student is considered "enrolled" if they have either:
+          // 1. Submitted course registration (has enrolled courses)
+          // 2. Has attendance records (means they already registered and attended)
+          const shouldShowMainApp = hasEnrolledCourses || hasAttendanceRecords;
+
+          setIsEnrolled(shouldShowMainApp);
+          console.log(
+            "RootNavigator: Has enrolled courses:",
+            hasEnrolledCourses,
+          );
+          console.log(
+            "RootNavigator: Should show main app:",
+            shouldShowMainApp,
+          );
 
           // Check if biometric is set up
           const deviceId = await SecureStore.getItemAsync("deviceId");
@@ -84,6 +116,8 @@ export const RootNavigator = () => {
     isEnrolled,
     "isBiometricSetup:",
     isBiometricSetup,
+    "hasAttendance:",
+    hasAttendance,
   );
 
   return (
@@ -96,7 +130,7 @@ export const RootNavigator = () => {
             <Stack.Screen name="Signup" component={SignupScreen} />
           </>
         ) : !isEnrolled ? (
-          // Logged in but not enrolled - show course registration
+          // Logged in but not enrolled (no courses and no attendance) - show course registration
           <Stack.Screen
             name="CourseRegistration"
             component={CourseRegistrationScreen}

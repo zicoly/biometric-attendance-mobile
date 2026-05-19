@@ -1,6 +1,33 @@
 import { create } from "zustand";
 import { authService, User } from "../services/authService";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
+
+const isWeb = Platform.OS === "web";
+
+const webStorage = {
+  getItem: (key: string) => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // Ignore
+    }
+  },
+  removeItem: (key: string) => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Ignore
+    }
+  },
+};
 
 interface AuthState {
   user: User | null;
@@ -26,7 +53,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       console.log("Store: Logging in...");
       const { user } = await authService.login(emailOrMatric, password);
-      console.log("Store: Login successful", user);
+      console.log("Store: Login successful - User details:", {
+        fullName: user?.fullName,
+        department: user?.department,
+        level: user?.level,
+      });
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error: any) {
       console.error("Store: Login failed", error);
@@ -52,7 +83,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       let token = null;
       try {
-        token = await SecureStore.getItemAsync("accessToken");
+        if (isWeb) {
+          token = webStorage.getItem("accessToken");
+        } else {
+          token = await SecureStore.getItemAsync("accessToken");
+        }
         console.log("Check Auth - Token exists:", !!token);
       } catch (error) {
         console.error("Error reading token:", error);
@@ -64,39 +99,26 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
 
       const user = await authService.getMe();
-      console.log("Check Auth - User found:", user?.fullName);
+      console.log("Check Auth - User found:", {
+        fullName: user?.fullName,
+        department: user?.department,
+        level: user?.level,
+      });
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
       console.error("Check Auth failed:", error);
       try {
-        await SecureStore.deleteItemAsync("accessToken");
+        if (isWeb) {
+          webStorage.removeItem("accessToken");
+          webStorage.removeItem("refreshToken");
+        } else {
+          await SecureStore.deleteItemAsync("accessToken");
+          await SecureStore.deleteItemAsync("refreshToken");
+        }
       } catch (deleteError) {
         console.error("Failed to delete token:", deleteError);
       }
       set({ isLoading: false, isAuthenticated: false, user: null });
-    }
-  },
-
-  // In authStore.ts, add a method to check token validity
-  checkTokenValidity: async () => {
-    try {
-      const token = await authService.getToken();
-      if (!token) return false;
-
-      // Decode token to check expiration
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const isExpired = payload.exp * 1000 < Date.now();
-
-      if (isExpired) {
-        console.log("Token expired, logging out");
-        await authService.logout();
-        set({ user: null, isAuthenticated: false });
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      return false;
     }
   },
 }));

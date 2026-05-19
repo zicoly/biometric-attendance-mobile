@@ -47,6 +47,11 @@ export const studentService = {
     const response = await api.get("/enrollment/my-courses");
     const courses = unwrap(response.data)?.courses ?? [];
 
+    console.log(
+      "Raw enrolled courses from API:",
+      JSON.stringify(courses, null, 2),
+    );
+
     // Map the response to match our interface
     return courses.map((course: any) => ({
       _id: course._id,
