@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { authService, User } from "../services/authService";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
+import { storage } from "../utils/storage";
 
 const isWeb = Platform.OS === "web";
 
@@ -40,7 +41,7 @@ interface AuthState {
   clearError: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isLoading: true,
   isAuthenticated: false,
@@ -74,7 +75,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
+    const currentUser = get().user;
+
+    // Clear auth tokens
     await authService.logout();
+
     set({ user: null, isAuthenticated: false, error: null });
   },
 

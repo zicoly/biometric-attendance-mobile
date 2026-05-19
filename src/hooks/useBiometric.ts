@@ -2,11 +2,14 @@ import { useState, useCallback } from "react";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
 import { studentService } from "../services/studentService";
+import { useAuthStore } from "../store/authStore";
+import { storage } from "../utils/storage";
 
 export const useBiometric = () => {
   const [isAvailable, setIsAvailable] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuthStore();
 
   const checkBiometricAvailability = useCallback(async () => {
     const hasHardware = await LocalAuthentication.hasHardwareAsync();
@@ -18,7 +21,7 @@ export const useBiometric = () => {
 
   const checkDeviceRegistration = useCallback(async () => {
     try {
-      const deviceId = await SecureStore.getItemAsync("deviceId");
+      const deviceId = await storage.getItem("deviceId", user?._id);
       const isDeviceRegistered = !!deviceId;
       setIsRegistered(isDeviceRegistered);
       return isDeviceRegistered;
@@ -26,7 +29,7 @@ export const useBiometric = () => {
       console.error("checkDeviceRegistration error:", error);
       return false;
     }
-  }, []);
+  }, [user?._id]);
 
   const registerDevice = useCallback(async () => {
     setIsLoading(true);
@@ -36,8 +39,8 @@ export const useBiometric = () => {
       const publicKey = `public_key_${Date.now()}`;
 
       await studentService.registerDevice(deviceId, deviceName, publicKey);
-      await SecureStore.setItemAsync("deviceId", deviceId);
-      await SecureStore.setItemAsync("privateKey", `private_key_${Date.now()}`);
+      await storage.setItem("deviceId", deviceId, user?._id);
+      await storage.setItem("privateKey", `private_key_${Date.now()}`, user?._id);
 
       setIsRegistered(true);
       return { success: true, deviceId };
@@ -47,7 +50,7 @@ export const useBiometric = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user?._id]);
 
   const markAttendanceWithBiometric = useCallback(
     async (
@@ -63,7 +66,7 @@ export const useBiometric = () => {
         error?: string;
       }> => {
         try {
-          const deviceId = await SecureStore.getItemAsync("deviceId");
+          const deviceId = await storage.getItem("deviceId", user?._id);
           if (!deviceId) {
             return { success: false, error: "Device not registered" };
           }
@@ -151,7 +154,7 @@ export const useBiometric = () => {
       setIsLoading(false);
       return result;
     },
-    [],
+    [user?._id],
   );
 
   return {

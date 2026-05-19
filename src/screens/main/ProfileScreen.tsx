@@ -7,23 +7,22 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../store/authStore";
 import { useBiometric } from "../../hooks/useBiometric";
+import { storage } from "../../utils/storage";
 
 export const ProfileScreen = () => {
+  const navigation = useNavigation();
   const { user, logout } = useAuthStore();
-  const { isRegistered, checkDeviceRegistration, registerDevice, isLoading } =
-    useBiometric();
+  const { checkDeviceRegistration, isLoading } = useBiometric();
   const [biometricStatus, setBiometricStatus] = useState<
     "registered" | "not_registered" | "checking"
   >("checking");
 
   useEffect(() => {
     console.log("ProfileScreen - User object:", user);
-    console.log("ProfileScreen - Department:", user?.department);
-    console.log("ProfileScreen - Level:", user?.level);
-    console.log("ProfileScreen - Email:", user?.email);
   }, [user]);
 
   useEffect(() => {
@@ -31,11 +30,17 @@ export const ProfileScreen = () => {
   }, []);
 
   const checkBiometricStatus = async () => {
-    const registered = await checkDeviceRegistration();
-    setBiometricStatus(registered ? "registered" : "not_registered");
+    try {
+      // Check if device is registered for this user
+      const deviceId = await storage.getItem("deviceId", user?._id);
+      setBiometricStatus(deviceId ? "registered" : "not_registered");
+    } catch (error) {
+      console.error("Error checking biometric status:", error);
+      setBiometricStatus("not_registered");
+    }
   };
 
-  const handleBiometricSetup = async () => {
+  const handleBiometricSetup = () => {
     if (biometricStatus === "registered") {
       Alert.alert(
         "Already Setup",
@@ -44,16 +49,21 @@ export const ProfileScreen = () => {
       return;
     }
 
-    const result = await registerDevice();
-    if (result.success) {
-      setBiometricStatus("registered");
-      Alert.alert("Success", "Biometric authentication setup complete!");
-    } else {
-      Alert.alert(
-        "Setup Failed",
-        result.error || "Could not setup biometric authentication",
-      );
-    }
+    // Navigate to the biometric setup screen
+    navigation.navigate("BiometricSetup" as never);
+  };
+
+  const handleLogout = async () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          await logout();
+        },
+      },
+    ]);
   };
 
   return (
@@ -139,7 +149,7 @@ export const ProfileScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Ionicons name="log-out-outline" size={20} color="#fff" />
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>

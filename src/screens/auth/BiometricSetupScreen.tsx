@@ -83,11 +83,15 @@ export const BiometricSetupScreen = () => {
     }
 
     const result = await registerDevice();
+    const navigateBackToProfile = () => {
+      navigation.goBack(); // Go back to Profile screen
+    };
 
+    // In handleSetupBiometric after success:
     if (result.success) {
       setStep("success");
       setTimeout(() => {
-        navigateToDashboard();
+        navigateBackToProfile();
       }, 1500);
     } else {
       Alert.alert("Setup Failed", result.error || "Could not register device", [

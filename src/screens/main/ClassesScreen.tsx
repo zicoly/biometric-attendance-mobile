@@ -19,6 +19,7 @@ import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { storage } from "../../utils/storage";
+import { useAuthStore } from "../../store/authStore";
 
 export const ClassesScreen = () => {
   const navigation = useNavigation();
@@ -40,16 +41,21 @@ export const ClassesScreen = () => {
   const { markAttendanceWithBiometric, checkDeviceRegistration } =
     useBiometric();
   const { addToQueue, syncQueue } = useAttendanceStore();
+  const { user } = useAuthStore();
 
   // Load marked sessions from storage
   const loadMarkedSessions = async () => {
     try {
-      const stored = await storage.getItem("markedSessions");
+      const stored = await storage.getItem("markedSessions", user?._id);
       if (stored) {
-        setMarkedSessions(new Set(JSON.parse(stored)));
+        const parsed = JSON.parse(stored);
+        setMarkedSessions(new Set(parsed));
+        return new Set(parsed);
       }
+      return new Set<string>();
     } catch (error) {
       console.error("Failed to load marked sessions:", error);
+      return new Set<string>();
     }
   };
 
@@ -59,7 +65,11 @@ export const ClassesScreen = () => {
       const newMarked = new Set(markedSessions);
       newMarked.add(sessionId);
       setMarkedSessions(newMarked);
-      await storage.setItem("markedSessions", JSON.stringify([...newMarked]));
+      await storage.setItem(
+        "markedSessions",
+        JSON.stringify([...newMarked]),
+        user?._id,
+      );
     } catch (error) {
       console.error("Failed to save marked session:", error);
     }
@@ -73,15 +83,7 @@ export const ClassesScreen = () => {
       ]);
 
       // Load marked sessions from storage
-      const stored = await storage.getItem("markedSessions");
-      let markedSet: Set<string> = new Set();
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          markedSet = new Set(parsed);
-        }
-      }
-      setMarkedSessions(markedSet);
+      const markedSet = await loadMarkedSessions();
 
       const activeWithMarked = active.map((session) => ({
         ...session,
@@ -104,7 +106,6 @@ export const ClassesScreen = () => {
   }, []);
 
   useEffect(() => {
-    loadMarkedSessions();
     loadSessions();
   }, []);
 
@@ -232,8 +233,11 @@ export const ClassesScreen = () => {
       );
 
       Alert.alert("Success", "Attendance marked successfully!");
+
+      // Save to local storage
       await saveMarkedSession(selectedSession._id);
 
+      // Update UI immediately
       setActiveSessions((prev) =>
         prev.map((s) =>
           s._id === selectedSession._id ? { ...s, hasMarked: true } : s,
@@ -316,6 +320,17 @@ export const ClassesScreen = () => {
             "Session Expired",
             "The biometric challenge expired. Please try marking attendance again.",
             [{ text: "Try Again", onPress: () => markWithBiometric(session) }],
+          );
+        } else if (result.error?.toLowerCase().includes("already")) {
+          Alert.alert(
+            "Info",
+            "You have already marked attendance for this session",
+          );
+          await saveMarkedSession(session._id);
+          setActiveSessions((prev) =>
+            prev.map((s) =>
+              s._id === session._id ? { ...s, hasMarked: true } : s,
+            ),
           );
         } else {
           Alert.alert("Failed", result.error || "Could not mark attendance");
@@ -412,6 +427,15 @@ export const ClassesScreen = () => {
           </View>
         )}
 
+        {/* If marked, show "Already Marked" badge - No button */}
+        {isLive && hasMarked && (
+          <View style={styles.markedBadge}>
+            <Ionicons name="checkmark-circle" size={16} color="#fff" />
+            <Text style={styles.markedText}>Already Marked ✓</Text>
+          </View>
+        )}
+
+        {/* If not marked and live, show Mark Attendance button */}
         {isLive && !hasMarked && (
           <TouchableOpacity
             style={styles.markButton}
@@ -421,13 +445,6 @@ export const ClassesScreen = () => {
             <Ionicons name="finger-print-outline" size={16} color="#fff" />
             <Text style={styles.markButtonText}>Mark Attendance</Text>
           </TouchableOpacity>
-        )}
-
-        {isLive && hasMarked && (
-          <View style={styles.markedBadge}>
-            <Ionicons name="checkmark-circle" size={16} color="#fff" />
-            <Text style={styles.markedText}>Already Marked ✓</Text>
-          </View>
         )}
 
         {isUpcoming && !hasMarked && (
@@ -738,7 +755,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 
-  // Improved Scanner Styles
   scannerContainer: {
     flex: 1,
     backgroundColor: "#000",
